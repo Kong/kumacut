@@ -27,9 +27,9 @@ if (program.all) {
 }
 
 program
-  .command("cut")
-  .option("--major, --minor", "The type of release.")
-  .action(function(cmdObj) {
+  .command("cut [releaseType]")
+  .description("The type of release.")
+  .action(releaseType => {
     let currentVer = latest.split(".");
     let major = parseInt(currentVer[0]);
     let minor = parseInt(currentVer[1]);
@@ -37,10 +37,10 @@ program
     let newVer;
     let newType = "patch";
 
-    if (cmdObj.major) {
+    if (releaseType === "major") {
       newVer = `${major + 1}.${minor}.${patch}`;
       newType = "major";
-    } else if (cmdObj.minor) {
+    } else if (releaseType === "minor") {
       newVer = `${major}.${minor + 1}.${patch}`;
       newType = "minor";
     } else {
