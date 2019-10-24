@@ -16,7 +16,8 @@ const scriptVer = "0.0.1";
 const releases = "./targets/releases.json"; // update path when moved to website
 const sidebarNav = "./targets/sidebar-nav.js"; // update path when moved to website
 const latest = LatestSemver(require(releases));
-const sourcVersionDir = path.resolve(__dirname, "./draft");
+const sourcVersionDir = "draft";
+const sourceExclusions = ["**/*.md", `${sourcVersionDir}/installation`];
 
 // this is the token we replace in the documentation
 // markdown files when cutting a new release
@@ -37,7 +38,11 @@ replaceVerToken = (token, ver) => {
 
   try {
     const results = replace.sync(options);
-    console.log(`${chalk.green.bold("✔")} Version number updated to ${chalk.blue.bold(ver)} in all Markdown files!`);
+    console.log(
+      `${chalk.green.bold("✔")} Version number updated to ${chalk.blue.bold(
+        ver
+      )} in all Markdown files!`
+    );
   } catch (err) {
     console.log(chalk.red.bold(err));
   }
@@ -81,7 +86,11 @@ updateReleaseList = (list, ver) => {
       console.log(chalk.red.bold(err));
     }
 
-    console.log(`${chalk.green.bold("✔")} ${chalk.blue.bold(ver)} added to release list file!`);
+    console.log(
+      `${chalk.green.bold("✔")} ${chalk.blue.bold(
+        ver
+      )} added to release list file!`
+    );
   });
 };
 
@@ -117,9 +126,9 @@ bumpVersion = (type, val) => {
   }
 
   console.log(
-    `${chalk.green.bold("✔")} New Release: ${chalk.blue.bold(label)}, ${chalk.green.bold(latest)} ➜ ${chalk.green.bold(
-      ver
-    )}`
+    `${chalk.green.bold("✔")} New Release: ${chalk.blue.bold(
+      label
+    )}, ${chalk.green.bold(latest)} ➜ ${chalk.green.bold(ver)}`
   );
 
   // create the new version folder accordingly
@@ -127,11 +136,58 @@ bumpVersion = (type, val) => {
 
   // update the release list
   updateReleaseList(releases, ver);
+
+  // update the sidebar configuration
+  updateSidebarConfig(sidebarNav, ver);
+};
+
+/**
+ * @function updateSidebarConfig
+ *
+ * @description Updates the sidebar config file based on the
+ * structure of our documentation folder
+ */
+updateSidebarConfig = (source, version) => {
+  let sourceFile = require(source);
+  let lastItem = Object.keys(sourceFile).slice(-1);
+  let newParentItem = `/docs/${version}/`;
+
+  let subItems = [];
+  let coupledItems = [];
+  let finalItemGroup = [];
+
+  lastItem.forEach(key => {
+    subItems = sourceFile[key];
+    coupledItems[newParentItem] = subItems;
+    finalItemGroup = Object.assign(sourceFile, coupledItems);
+    finalItemGroup = `module.exports = ${JSON.stringify(
+      finalItemGroup,
+      null,
+      2
+    )}`;
+  });
+
+  // write the new nav structure to the config file
+  fs.writeFileSync(source, finalItemGroup, err => {
+    if (err) {
+      console.log(chalk.red.bold(err));
+    }
+
+    console.log(
+      `${chalk.green.bold("✔")} ${chalk.blue.bold(
+        version
+      )} added to release list file!`
+    );
+  });
 };
 
 // all of our program's option and functionality couplings
 program
-  .version(scriptVer, "-v, --version", "Output the current version of this script.")
+  .version(
+    scriptVer,
+    "-v, --version",
+    "Output the current version of this script."
+  )
   .option("--major", "Cut a major release.")
   .option("--minor", "Cut a minor release.")
   .option("--patch", "Cut a patch release.")
@@ -139,11 +195,14 @@ program
   .option("-l, --latest", `Display the latest version of ${namespace}.`)
   .option("-a, --all", `Display all versions of ${namespace}.`)
   .option("--sidebar", "Display the current sidebar arrangement.")
+  .option("--test", "Just a test command for random things.")
   .parse(process.argv);
 
 // get the latest version
 if (program.latest) {
-  console.log(`The latest version of ${namespace} is ${chalk.green.bold(latest)}`);
+  console.log(
+    `The latest version of ${namespace} is ${chalk.green.bold(latest)}`
+  );
 }
 
 // display all versions
@@ -182,4 +241,8 @@ if (program.sidebar) {
     console.log(chalk.blue.bold("Current sidebar structure:"));
     console.table(require(sidebarNav));
   });
+}
+
+// used for testing random things
+if (program.test) {
 }

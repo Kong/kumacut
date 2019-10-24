@@ -7,7 +7,7 @@
     "doc": "docs"
   },
   "bin": {
-    "kumaver": "./kuma-version.js"
+    "kumacut": "./kuma-version.js"
   },
   "author": "Kong, Inc.",
   "license": "ISC",

@@ -1,5 +1,5 @@
 useTabs: false
 singleQuote: false
-printWidth: 120
+printWidth: 80
 jsxBracketSameLine: false
 bracketSpacing: true
