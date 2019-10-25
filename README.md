@@ -2,6 +2,8 @@
 
 A script for handling the cutting of a release on the [Kuma](https://kuma.io/) website.
 
+**PLEASE NOTE:** This script is already present in the website repo. This repo exists for standalone testing that won't touch any of the website files and allows us to work without any other files getting in the way. If you want to work on the version for the end goal, focus on the [website repo](https://github.com/Kong/kuma-website/).
+
 ## Running the script locally
 
 As to not interfere with the version that is run from the website repository, you can run it locally via `$ ./kumacut.js [command]`. When it's live on the website project, you'll be able to use `npm link` and run it globally: `$ kumacut [command]`.
