@@ -15,8 +15,6 @@ As to not interfere with the version that is run from the website repository, yo
 3. It will add the new sidebar navigation structure for the new version to the `sidebar-nav.js` file (it bases the nav structure on the previous versions, so it may require manual editing on your part if there are new pages under your new release)
 4. It will append the new version to the `releases.json` file, which is what the website uses to handle the versioning on the documentation pages, install, etc.
 
-After these steps run, you can run the site locally with `yarn docs:dev` and you should see your new version running accordingly!
-
 ## How do I use the script?
 
 You'll want to re-run `npm|yarn install` first and foremost. Once that's done, run `npm link`. This will link the `kumacut` command to your bin so you can run it globally.
