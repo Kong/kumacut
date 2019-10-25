@@ -1,14 +1,8 @@
 {
-  "name": "kuma-version-script",
-  "version": "1.0.0",
+  "name": "kumacut",
+  "version": "0.0.1",
   "description": "A tool for easily cutting new versions on the Kuma website.",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
-  "bin": {
-    "kumacut": "./kuma-version.js"
-  },
+  "main": "kumacut.js",
   "author": "Kong, Inc.",
   "license": "ISC",
   "dependencies": {

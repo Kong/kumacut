@@ -13,11 +13,10 @@ const namespace = "Kuma";
 const scriptVer = "0.0.1";
 
 // app version info
-const releases = "./targets/releases.json"; // update path when moved to website
-const sidebarNav = "./targets/sidebar-nav.js"; // update path when moved to website
+const releases = path.resolve(__dirname, "targets/releases.json");
+const sidebarNav = path.resolve(__dirname, "targets/sidebar-nav.js");
 const latest = LatestSemver(require(releases));
-const sourcVersionDir = "draft";
-const sourceExclusions = ["**/*.md", `${sourcVersionDir}/installation`];
+const sourcVersionDir = path.resolve(__dirname, "./draft");
 
 // this is the token we replace in the documentation
 // markdown files when cutting a new release
@@ -29,9 +28,9 @@ const verToken = "%%VER%%";
  * @description This will search for the version token in our source docs folder
  * and replace it with the version number specified by our release type
  */
-replaceVerToken = (token, ver) => {
+replaceVerToken = (token, ver, dest) => {
   const options = {
-    files: `${ver}/**/*.md`,
+    files: dest,
     from: new RegExp(token, "g"),
     to: ver
   };
@@ -49,11 +48,12 @@ replaceVerToken = (token, ver) => {
 };
 
 /**
- * @function copyDir
+ * @function cloneDirAndReplace
  *
- * @description Copy the base version directory to a new one
+ * @description Copy the base version directory to a new one and then replace
+ * the version token in the doc files
  */
-copyDir = (source, dest) => {
+cloneDirAndReplace = (source, dest, ver) => {
   fs.copy(source, dest)
     .then(() => {
       // let the user know that their folder has been created
@@ -61,7 +61,7 @@ copyDir = (source, dest) => {
     })
     .then(() => {
       // replace the version token in the documentation markdown files accordingly
-      replaceVerToken(verToken, dest.replace("./", ""));
+      replaceVerToken(verToken, ver, `${dest}/**/*.md`);
     })
     .catch(err => {
       console.log(chalk.red.bold(err));
@@ -104,41 +104,45 @@ bumpVersion = (type, val) => {
   let major = parseInt(currentVer[0]);
   let minor = parseInt(currentVer[1]);
   let patch = parseInt(currentVer[2]);
-  let label, ver;
+  let label, version;
 
   switch (type) {
     case "major":
-      ver = `${major + 1}.${minor}.${patch}`;
+      version = `${major + 1}.${minor}.${patch}`;
       label = "major";
       break;
     case "minor":
-      ver = `${major}.${minor + 1}.${patch}`;
+      version = `${major}.${minor + 1}.${patch}`;
       label = "minor";
       break;
-    case "patch":
-      ver = `${major}.${minor}.${patch + 1}`;
-      label = "patch";
-      break;
     case "custom":
-      ver = val.replace("v", "");
+      version = val.replace("v", "");
       label = "custom";
+      break;
+    default:
+      version = `${major}.${minor}.${patch + 1}`;
+      label = "patch";
       break;
   }
 
   console.log(
     `${chalk.green.bold("✔")} New Release: ${chalk.blue.bold(
       label
-    )}, ${chalk.green.bold(latest)} ➜ ${chalk.green.bold(ver)}`
+    )}, ${chalk.green.bold(latest)} ➜ ${chalk.green.bold(version)}`
   );
 
   // create the new version folder accordingly
-  copyDir(sourcVersionDir, `./${ver}`);
+  cloneDirAndReplace(
+    sourcVersionDir,
+    path.resolve(__dirname, `${version}`),
+    version
+  );
 
   // update the release list
-  updateReleaseList(releases, ver);
+  updateReleaseList(releases, version);
 
   // update the sidebar configuration
-  updateSidebarConfig(sidebarNav, ver);
+  updateSidebarConfig(sidebarNav, version);
 };
 
 /**
@@ -182,67 +186,57 @@ updateSidebarConfig = (source, version) => {
 };
 
 // all of our program's option and functionality couplings
+program.version(
+  scriptVer,
+  "-v, --version",
+  "Output the current version of this script."
+);
+
 program
-  .version(
-    scriptVer,
-    "-v, --version",
-    "Output the current version of this script."
-  )
-  .option("--major", "Cut a major release.")
-  .option("--minor", "Cut a minor release.")
-  .option("--patch", "Cut a patch release.")
-  .option("--custom <ver>", "Cut a release with a user-defined version.")
-  .option("-l, --latest", `Display the latest version of ${namespace}.`)
-  .option("-a, --all", `Display all versions of ${namespace}.`)
-  .option("--sidebar", "Display the current sidebar arrangement.")
-  .option("--test", "Just a test command for random things.")
-  .parse(process.argv);
-
-// get the latest version
-if (program.latest) {
-  console.log(
-    `The latest version of ${namespace} is ${chalk.green.bold(latest)}`
-  );
-}
-
-// display all versions
-if (program.all) {
-  console.log(releases);
-}
-
-// major
-if (program.major) {
-  bumpVersion("major");
-}
-
-// minor
-if (program.minor) {
-  bumpVersion("minor");
-}
-
-// patch
-if (program.patch) {
-  bumpVersion("patch");
-}
-
-// custom (user-defined version)
-if (program.custom !== undefined) {
-  bumpVersion("custom", program.custom);
-}
-
-if (program.sidebar) {
-  // make sure the sidebar nav file exists first
-  fs.access(sidebarNav, fs.F_OK, err => {
-    if (err) {
-      console.log(chalk.red.bold(err));
-      return false;
-    }
-
-    console.log(chalk.blue.bold("Current sidebar structure:"));
-    console.table(require(sidebarNav));
+  .command("latest")
+  .description(`display the latest version of ${namespace}`)
+  .action(() => {
+    console.log(
+      `The latest version of ${namespace} in these docs is ${chalk.green.bold(
+        latest
+      )}`
+    );
   });
-}
 
-// used for testing random things
-if (program.test) {
-}
+// simple command for cutting a new patch
+program
+  .command("bump")
+  .description(
+    "this will simply cut a new patch and bump the patch number up by 1"
+  )
+  .action(() => {
+    bumpVersion("patch");
+  });
+
+// command for cutting a new version
+program
+  .command("new <type> [ver]")
+  .description(
+    "options: major, minor, custom <version>, or it defaults to patch"
+  )
+  .action((type, ver) => {
+    if (ver && type === "custom") {
+      bumpVersion(type, ver);
+    } else if (!ver && type === "custom") {
+      console.log(
+        chalk.red.bold("A version must be supplied with the custom option!")
+      );
+    } else {
+      bumpVersion("patch");
+    }
+  });
+
+// a test command for random things
+program
+  .command("test")
+  .description("a command used for random testing")
+  .action(() => {
+    console.log(sourcVersionDir);
+  });
+
+program.parse(process.argv);
